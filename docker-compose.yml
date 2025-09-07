@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+  airflow-init:
+    build:
+      context: .
+    depends_on:
+      - postgres
+    entrypoint: 
+      - bash
+      - -c
+      - |
+        airflow db init &&
+        airflow users create \
+          --username admin \
+          --firstname Air \
+          --lastname Flow \
+          --role Admin \
+          --email admin@example.com \
+          --password admin
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./dags:/opt/airflow/data
+
+  airflow-webserver:
+    build:
+      context: .
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow 
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data
+    ports:
+      - "8080:8080"
+    command: webserver
+  airflow-scheduler:
+    build:
+      context: .
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data
+    command: scheduler
+
+volumes:
+  postgres-db-volume:
