@@ -36,7 +36,7 @@ with DAG(
 
     # Optional ingestion step 
     ingest_data = PythonOperator(task_id="ingest_data_to_pg",
-                                 python_callable=ingest_to_postgres()
+                                 python_callable=ingest_to_postgres
                                  )
     
     download_data >> ingest_data    
